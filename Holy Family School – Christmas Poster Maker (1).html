@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Holy Family School – Christmas Poster Maker</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Cormorant+Garamond:wght@600;700&family=Noto+Sans+Malayalam:wght@600;700&display=swap">
+<style>
+:root{--bg:#fbf6ec;--ink:#17352a;--card:#fff;--line:#d9cfb8;--red:#a6192e;--green:#0f4a37;--gold:#b8892b;--muted:#5d6b63;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0b1f18;--ink:#f4ecd8;--card:#12302480;--line:#2d5444;--red:#d3354b;--green:#1d6b50;--gold:#e0b856;--muted:#a9bdb2}}
+:root[data-theme="dark"]{--bg:#0b1f18;--ink:#f4ecd8;--card:#12302480;--line:#2d5444;--red:#d3354b;--green:#1d6b50;--gold:#e0b856;--muted:#a9bdb2}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 "Cormorant Garamond","Noto Sans Malayalam",Georgia,serif;font-weight:600}
+main{max-width:520px;margin:0 auto;padding:20px 16px 40px}
+h1{font-family:"Noto Sans Malayalam","Great Vibes",serif;font-weight:700;font-size:2rem;line-height:1.1;margin:8px 0 2px;color:var(--gold)}
+p.sub{margin:0 0 16px;color:var(--muted);font-size:1.05rem}
+canvas{width:100%;height:auto;display:block;border-radius:6px;border:2px solid var(--gold);touch-action:none;cursor:grab;background:#0b3a2b}
+.hint{font-size:.95rem;color:var(--muted);margin:6px 0 14px}
+label{display:block;font-size:1rem;margin:12px 0 4px}
+input[type=text],textarea{width:100%;padding:11px 12px;font:inherit;font-size:1.1rem;color:var(--ink);background:var(--card);border:1.5px solid var(--line);border-radius:6px}
+input[type=range]{width:100%;accent-color:var(--red)}
+.btn{display:block;width:100%;margin-top:12px;padding:13px;font:inherit;font-size:1.2rem;font-weight:700;border-radius:6px;border:0;cursor:pointer}
+.photo{background:var(--green);color:#fff;margin-bottom:0}
+.vh{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden}
+.save{background:var(--red);color:#fff}
+.btn:focus-visible,input:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+#out{display:none;margin-top:16px}
+#out img{width:100%;border-radius:6px}
+#msg{min-height:1.4em;margin:8px 0 0;color:var(--muted)}
+</style>
+</head>
+<body>
+<main>
+<h1>ക്രിസ്മസ് ആശംസകൾ</h1>
+<p class="sub">ഹോളി ഫാമിലി സ്കൂൾ ക്രിസ്മസ് പോസ്റ്റർ തയ്യാറാക്കാം.</p>
+
+<canvas id="c" width="1080" height="1350" aria-label="Poster preview"></canvas>
+<p class="hint">ഫോട്ടോ വിരൽ കൊണ്ട് നീക്കി സ്ഥാനം ശരിയാക്കാം. സ്ലൈഡർ ഉപയോഗിച്ച് വലുതാക്കാം.</p>
+
+<label class="btn photo" for="file" id="pick" style="text-align:center">ഗാലറിയിൽ നിന്ന് ഫോട്ടോ തിരഞ്ഞെടുക്കുക</label>
+<input id="file" type="file" accept="image/*" class="vh">
+
+<label for="zoom">സൂം</label>
+<input id="zoom" type="range" min="1" max="3" step="0.01" value="1">
+
+<label for="name">പേര്</label>
+<input id="name" type="text" value="" placeholder="വിദ്യാർത്ഥിയുടെ പേര്" maxlength="40">
+<label for="item">ക്ലാസ് / ഡിവിഷൻ</label>
+<input id="item" type="text" value="" placeholder="ഉദാ: 5 B" maxlength="40">
+<label for="school">സ്കൂൾ</label>
+<input id="school" type="text" value="Holy Family School" maxlength="40">
+<label for="wish">ആശംസ</label>
+<input id="wish" type="text" value="Wishing you joy, peace and love this Christmas" maxlength="70">
+
+<button class="btn save" id="save" type="button">പോസ്റ്റർ സേവ് ചെയ്യുക</button>
+<p id="msg" role="status"></p>
+<div id="out"><p>താഴെയുള്ള പോസ്റ്ററിൽ അമർത്തിപ്പിടിച്ച് "Save image" തിരഞ്ഞെടുക്കുക.</p><img id="outimg" alt="Your finished poster"></div>
+</main>
+
+<script>
+(function(){
+var cv=document.getElementById('c'),ctx=cv.getContext('2d');
+var W=1080,H=1350,img=null,ox=0,oy=0,zoom=1;
+var $=function(id){return document.getElementById(id)};
+var FX=240,FY=290,FW=600,FH=650; // photo arch bounds
+var SCRIPT='"Great Vibes",cursive,Georgia,serif',SERIF='"Cormorant Garamond","Noto Sans Malayalam",Georgia,serif';
+
+function star(x,y,r,col){ctx.fillStyle=col;ctx.beginPath();for(var i=0;i<10;i++){var a=-Math.PI/2+i*Math.PI/5,rr=i%2?r*0.45:r;ctx.lineTo(x+Math.cos(a)*rr,y+Math.sin(a)*rr)}ctx.closePath();ctx.fill()}
+function fit(text,font,maxW,start){var s=start;do{ctx.font=font.replace('$',s);s-=2}while(ctx.measureText(text).width>maxW&&s>20);return ctx.font}
+function archPath(inset){var cx=FX+FW/2,r=FW/2-inset;ctx.beginPath();ctx.moveTo(FX+inset,FY+FH);ctx.lineTo(FX+inset,FY+r+inset);ctx.arc(cx,FY+r+inset,r,Math.PI,0);ctx.lineTo(FX+FW-inset,FY+FH);ctx.closePath()}
+
+function draw(){
+  var g=ctx.createRadialGradient(W/2,500,100,W/2,700,950);g.addColorStop(0,'#14634a');g.addColorStop(1,'#06251b');
+  ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  // snow
+  for(var i=0;i<70;i++){var x=(i*173)%W,y=(i*311)%H,r=2+(i%4);ctx.fillStyle='rgba(255,255,255,'+(0.25+(i%5)*0.1)+')';ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fill()}
+  // border
+  ctx.strokeStyle='#e0b856';ctx.lineWidth=6;ctx.strokeRect(28,28,W-56,H-56);ctx.lineWidth=2;ctx.strokeRect(44,44,W-88,H-88);
+  // title
+  star(W/2,100,34,'#f2cf6b');
+  ctx.textAlign='center';ctx.fillStyle='#f6e2a0';ctx.font='130px '+SCRIPT;ctx.fillText('Merry Christmas',W/2,235);
+  // arch glow
+  ctx.save();ctx.shadowColor='rgba(242,207,107,.55)';ctx.shadowBlur=40;archPath(-8);ctx.fillStyle='#e0b856';ctx.fill();ctx.restore();
+  // photo
+  ctx.save();archPath(0);ctx.clip();ctx.fillStyle='#0c3a2b';ctx.fillRect(FX,FY,FW,FH);
+  if(img){var s=Math.max(FW/img.width,FH/img.height)*zoom,w=img.width*s,h=img.height*s;ctx.drawImage(img,FX+FW/2-w/2+ox,FY+FH/2-h/2+oy,w,h)}
+  else{ctx.fillStyle='#cfe3d8';ctx.font='42px '+SERIF;ctx.fillText('Your photo here',W/2,FY+FH/2)}
+  ctx.restore();
+  ctx.strokeStyle='#f2cf6b';ctx.lineWidth=10;archPath(0);ctx.stroke();
+  // name
+  var name=$('name').value.trim()||'Student Name';
+  ctx.fillStyle='#fff7e3';fit(name,'700 $px '+SERIF,860,84);ctx.fillText(name,W/2,1040);
+  var item=$('item').value.trim();
+  if(item){ctx.fillStyle='#f2cf6b';fit(item,'600 $px '+SERIF,860,44);ctx.fillText(item,W/2,1095)}
+  // school band
+  ctx.fillStyle='#a6192e';ctx.fillRect(80,1130,W-160,92);ctx.strokeStyle='#f2cf6b';ctx.lineWidth=3;ctx.strokeRect(90,1140,W-180,72);
+  ctx.fillStyle='#fff7e3';var sc=($('school').value.trim()||'Holy Family School').toUpperCase();fit(sc,'700 $px '+SERIF,W-240,46);ctx.fillText(sc,W/2,1188);
+  // wish
+  ctx.fillStyle='#f6e2a0';fit($('wish').value.trim(),'600 $px '+SERIF,W-200,34);ctx.fillText($('wish').value.trim(),W/2,1285);
+}
+
+$('file').onchange=function(e){
+  var f=e.target.files[0];if(!f)return;
+  var im=new Image();im.onload=function(){img=im;ox=oy=0;zoom=1;$('zoom').value=1;draw()};
+  im.src=URL.createObjectURL(f);
+};
+$('zoom').oninput=function(){zoom=parseFloat(this.value);draw()};
+['name','item','school','wish'].forEach(function(id){$(id).oninput=draw});
+
+var drag=null;
+cv.addEventListener('pointerdown',function(e){drag={x:e.clientX,y:e.clientY};cv.setPointerCapture(e.pointerId);cv.style.cursor='grabbing'});
+cv.addEventListener('pointermove',function(e){if(!drag)return;var k=W/cv.getBoundingClientRect().width;ox+=(e.clientX-drag.x)*k;oy+=(e.clientY-drag.y)*k;drag={x:e.clientX,y:e.clientY};draw()});
+['pointerup','pointercancel'].forEach(function(t){cv.addEventListener(t,function(){drag=null;cv.style.cursor='grab'})});
+
+$('save').onclick=function(){
+  var msg=$('msg');msg.textContent='';
+  cv.toBlob(async function(blob){
+    var url=URL.createObjectURL(blob);$('outimg').src=url;
+    var d=null;try{d=await window.claude.use('downloads')}catch(e){}
+    if(d){
+      try{await d.save({filename:'holy-family-christmas-poster.png',data:blob});msg.textContent='പോസ്റ്റർ സേവ് ചെയ്തു. WhatsApp-ൽ അയയ്ക്കാം, സ്റ്റാറ്റസ് ആക്കാം.';return}
+      catch(err){if(err&&err.code==='declined'){return}}
+    }
+    $('out').style.display='block';msg.textContent='';$('out').scrollIntoView({behavior:'smooth'});
+  },'image/png');
+};
+
+draw();
+if(document.fonts&&document.fonts.load){Promise.all([document.fonts.load('130px "Great Vibes"'),document.fonts.load('700 40px "Cormorant Garamond"')]).then(draw).catch(function(){})}
+})();
+</script>
+</body>
+</html>
